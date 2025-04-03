@@ -1,0 +1,1757 @@
+{% extends 'index.html' %}
+
+
+{% block navbar %}
+    <ul class="navbar-nav ml-auto">
+        <li class="nav-item active">
+            <a class="nav-link" href="{{url_for('index')}}" style="color: white;">Home</a>
+        </li>
+        <li class="nav-item active">
+            <a class="nav-link" href="{{url_for('about')}}" style="color: white; padding-left: 40px;">About</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{{url_for('register')}}" style="color: white; padding-left: 40px;">Register</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{{url_for('login')}}" style="color: white; padding-left: 40px;">LogIn</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{{url_for('chatbot')}}" style="color: yellow; padding-left: 40px;">Chatbot</a>
+        </li>
+    </ul>
+{% endblock %}
+
+
+{% block content %}
+
+<style>
+    /* styles.css */
+
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #f2f2f2;
+    }
+
+    .chat-container {
+        width: 400px;
+        max-width: 90%;
+        margin: 50px auto;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        background-color: #fff;
+        display: flex;
+        flex-direction: column;
+        height: 600px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    #chat-window {
+        flex: 1;
+        padding: 20px;
+        overflow-y: auto;
+        border-bottom: 1px solid #ccc;
+    }
+
+    .message {
+        margin: 10px 0;
+    }
+
+    .bot-message {
+        text-align: left;
+        color: #333;
+    }
+
+    .user-message {
+        text-align: right;
+        color: #007BFF;
+    }
+
+    #input-area {
+        display: flex;
+        padding: 10px;
+    }
+
+    #user-input {
+        flex: 1;
+        padding: 10px;
+        font-size: 16px;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+    }
+
+    #send-button {
+        padding: 10px 20px;
+        font-size: 16px;
+        margin-left: 10px;
+        cursor: pointer;
+        background-color: #007BFF;
+        color: #fff;
+        border: none;
+        border-radius: 3px;
+    }
+
+    #send-button:hover {
+        background-color: #0056b3;
+    }
+
+    .option-button {
+        padding: 10px 15px;
+        margin: 5px;
+        background-color: #e7e7e7;
+        border: none;
+        border-radius: 3px;
+        cursor: pointer;
+    }
+
+    .option-button:hover {
+        background-color: #d4d4d4;
+    }
+
+    .video {
+        margin: 10px 0;
+    }
+
+    .video a {
+        color: #007BFF;
+        text-decoration: none;
+    }
+
+    .video a:hover {
+        text-decoration: underline;
+    }
+
+</style>
+
+<div style="min-height: 780px; background-color: rgba(0, 0, 0, 0.797);">
+    <div class="container-fluid">
+        <div class="contact_section_2">
+            <div class="row">
+                <div class="col-md-12">
+                    <center>
+                                            
+                        <div class="chat-container">
+                            <div id="chat-window">
+                                <div id="messages"></div>
+                            </div>
+                            <div id="input-area">
+                                <input type="text" id="user-input" placeholder="Type your message here..." disabled>
+                                <button id="send-button" disabled>Send</button>
+                            </div>
+                        </div>
+                    </center>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    // chatbot.js
+
+// Emotions Data (Ensure all emotions are included as needed)
+const emotionsData = {
+    "emotions": [
+        {
+            "name": "happy",
+            "follow_up_question": "What made you feel happy?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort": "That's amazing! Here are videos to keep your happiness flowing:",
+                    "videos": [
+                        {
+                            "title": "The Science of Happiness - Ted Talk",
+                            "link": "https://www.youtube.com/watch?v=fLJsdqxnZb0"
+                        },
+                        {
+                            "title": "10 Simple Habits for a Happier Life",
+                            "link": "https://www.youtube.com/watch?v=78nsxRxbf4w"
+                        }
+                    ],
+            "feedback_question": "How do you feel after exploring your happy?",
+            "feedback_positive": "That's great! Embracing your happy is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this happy together."
+        },
+        {
+            "name": "excited",
+            "follow_up_question": "What made you feel excited?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort": "Excitement is contagious! Here are some videos to celebrate your energy:",
+                    "videos": [
+                        {
+                            "title": "How to Harness Excitement for Success",
+                            "link": "https://www.youtube.com/watch?v=s1Yl9a1Kcfs"
+                        },
+                        {
+                            "title": "Boosting Your Enthusiasm",
+                            "link": "https://www.youtube.com/watch?v=LnU7My8RT7I"
+                        }
+                    ],
+            "feedback_question": "How do you feel after exploring your excited?",
+            "feedback_positive": "That's great! Embracing your excited is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this excited together."
+        },
+        {
+            "name": "grateful",
+            "follow_up_question": "What made you feel grateful?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort": "Gratitude is a powerful emotion. These videos will help deepen it:",
+                    "videos": [
+                        {
+                            "title": "The Science of Gratitude - Ted Talk",
+                            "link": "https://www.youtube.com/watch?v=JMd1CcGZYwU"
+                        },
+                        {
+                            "title": "Daily Gratitude Practices",
+                            "link": "https://www.youtube.com/watch?v=hnpQrMqDoqE"
+                        }
+                    ],
+            "feedback_question": "How do you feel after exploring your grateful?",
+            "feedback_positive": "That's great! Embracing your grateful is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this grateful together."
+        },
+        {
+            "name": "confident",
+            "follow_up_question": "What made you feel confident?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort": "Confidence can take you far! Here are some videos to keep it up:",
+                    "videos": [
+                        {
+                            "title": "Building Unshakable Confidence",
+                            "link": "https://www.youtube.com/watch?v=w-HYZv6HzAs"
+                        },
+                        {
+                            "title": "Confidence Boosters for Everyday Life",
+                            "link": "https://www.youtube.com/watch?v=lz2TWYaUJWE"
+                        }
+                    ],
+            "feedback_question": "How do you feel after exploring your confident?",
+            "feedback_positive": "That's great! Embracing your confident is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this confident together."
+        },
+        {
+            "name": "proud",
+            "follow_up_question": "What made you feel proud?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort": "That's fantastic! Keep achieving great things with these motivational videos:",
+                    "videos": [
+                        {
+                            "title": "Celebrating Small Wins",
+                            "link": "https://www.youtube.com/watch?v=rdrGTHjRRuM"
+                        },
+                        {
+                            "title": "How to Stay Humble While Being Proud",
+                            "link": "https://www.youtube.com/watch?v=zKYpWNGQUOA"
+                        }
+                    ],
+            "feedback_question": "How do you feel after exploring your proud?",
+            "feedback_positive": "That's great! Embracing your proud is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this proud together."
+        },
+        {
+            "name": "relieved",
+            "follow_up_question": "What made you feel relieved?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort":"What a relief! Relax and enjoy these calming videos:",
+                    "videos": [
+                        {
+                            "title": "How to Let Go of Stress",
+                            "link": "https://www.youtube.com/watch?v=c1Ndym-IsQg"
+                        },
+                        {
+                            "title": "Relaxing Meditation for Stress Relief",
+                            "link": "https://www.youtube.com/watch?v=wcQ7emrO_co"
+                        }
+                    ],
+            "feedback_question": "How do you feel after exploring your relieved?",
+            "feedback_positive": "That's great! Embracing your relieved is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this relieved together."
+        },
+        {
+            "name": "cheerful",
+            "follow_up_question": "What made you feel cheerful?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort":"That's great! Here are some uplifting videos to maintain your cheerfulness:",
+                    "videos": [
+                        {
+                            "title": "Positive Thinking for a Better Life",
+                            "link": "https://www.youtube.com/watch?v=JvBhPPYgxX8"
+                        },
+                        {
+                            "title": "Transforming Your Life Through Positive Thinking",
+                            "link": "https://www.youtube.com/watch?v=tgoJ4QShThs"
+                        }
+                    ],
+            "feedback_question": "How do you feel after exploring your cheerful?",
+            "feedback_positive": "That's great! Embracing your cheerful is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this cheerful together."
+        },
+        {
+            "name": "hopeful",
+            "follow_up_question": "What made you feel hopeful?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort": "Hope is the key to progress. Here are some inspiring videos:",
+                    "videos": [
+                        {
+                            "title": "Holding on to Hope in Difficult Times",
+                            "link": "https://www.youtube.com/watch?v=km5C_RljRHs"
+                        },
+                        {
+                            "title": "How Hope Can Change Everything",
+                            "link": "https://www.youtube.com/watch?v=AFaF3GM38P0"
+                        }
+                    ],
+            "feedback_question": "How do you feel after exploring your hopeful?",
+            "feedback_positive": "That's great! Embracing your hopeful is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this hopeful together."
+        },
+        {
+            "name": "loved",
+            "follow_up_question": "What made you feel loved?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort":"Love is a beautiful emotion. Celebrate it with these videos:",
+                    "videos": [
+                        {
+                            "title": "The Power of Love - Ted Talk",
+                            "link": "https://www.youtube.com/watch?v=PgIQv-rTGgA"
+                        },
+                        {
+                            "title": "Meditations for Feeling Loved",
+                            "link": "https://www.youtube.com/watch?v=aUuRIHdBdj8"
+                        }
+                    ],
+            "feedback_question": "How do you feel after exploring your loved?",
+            "feedback_positive": "That's great! Embracing your loved is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this loved together."
+        },
+        {
+            "name": "content",
+            "follow_up_question": "What made you feel content?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort": "Contentment is a gift. These videos will help you savor the moment:",
+                    "videos": [
+                        {
+                            "title": "Finding Contentment in Everyday Life",
+                            "link": "https://www.youtube.com/watch?v=UfB0bxJrYHs"
+                        },
+                        {
+                            "title": "The Secret to a Content Life",
+                            "link": "https://www.youtube.com/watch?v=wCf0fCB0u5c"
+                        }
+                    ],
+            "feedback_question": "How do you feel after exploring your content?",
+            "feedback_positive": "That's great! Embracing your content is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this content together."
+        },
+        {
+            "name": "sad",
+            "follow_up_question": "What made you feel sad?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort": "Feeling sad is part of life. These videos might help brighten your day:",
+                    "videos": [
+                        {
+                            "title": "Overcoming Sadness and Finding Joy",
+                            "link": "https://www.youtube.com/watch?v=SmMv6GC3Je4"
+                        },
+                        {
+                            "title": "Relaxing Music for Sadness Recovery",
+                            "link": "https://www.youtube.com/watch?v=SvbfObTthZU"
+                        }
+                    ],
+            "feedback_question": "How do you feel after exploring your sad?",
+            "feedback_positive": "That's great! Embracing your sad is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this sad together."
+        },
+        {
+            "name": "lonely",
+            "follow_up_question": "What made you feel lonely?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort": "Loneliness can be hard. These videos might help you feel connected:",
+                    "videos": [
+                        {
+                            "title": "How to Overcome Loneliness",
+                            "link": "https://www.youtube.com/watch?v=vtg9q00AZOc"
+                        },
+                        {
+                            "title": "Guided Meditation for Loneliness",
+                            "link": "https://www.youtube.com/watch?v=Zxnn4PzWCJ0"
+                        }
+                    ],
+            "feedback_question": "How do you feel after exploring your lonely?",
+            "feedback_positive": "That's great! Embracing your lonely is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this lonely together."
+        },
+        {
+            "name": "heartbroken",
+            "follow_up_question": "What made you feel heartbroken?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort": "Heartbreak takes time to heal. These videos offer support:",
+                    "videos": [
+                        {
+                            "title": "How to Heal a Broken Heart",
+                            "link": "https://www.youtube.com/watch?v=k0GQSJrpVhM"
+                        },
+                        {
+                            "title": "Moving On After Heartbreak",
+                            "link": "https://www.youtube.com/watch?v=YFW9BWiaQuY"
+                        }
+                    ],
+            "feedback_question": "How do you feel after exploring your heartbroken?",
+            "feedback_positive": "That's great! Embracing your heartbroken is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this heartbroken together."
+        },
+        {
+            "name": "depressed",
+            "follow_up_question": "What made you feel depressed?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort": "It’s okay to feel down. These videos might help lift your spirits:",
+                    "videos": [
+                        {
+                            "title": "Coping with Depression",
+                            "link": "https://www.youtube.com/watch?v=MOiaSc38ZeI"
+                        },
+                        {
+                            "title": "Daily Affirmations for Depression",
+                            "link": "https://www.youtube.com/watch?v=gyQX6bU1NIY"
+                        }
+                    ],
+            "feedback_question": "How do you feel after exploring your depressed?",
+            "feedback_positive": "That's great! Embracing your depressed is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this depressed together."
+        },
+        {
+            "name": "nostalgic",
+            "follow_up_question": "What made you feel nostalgic?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort":"Feeling nostalgic? Here are some videos to reflect on happy memories:",
+                    "videos": [
+                        {
+                            "title": "The Power of Nostalgia",
+                            "link": "https://www.youtube.com/watch?v=1I6BWpyYWL4"
+                        },
+                        {
+                            "title": "Relaxing Music for Nostalgia",
+                            "link": "https://www.youtube.com/watch?v=MagHIgYfFsY"
+                        }
+                    ],
+            "feedback_question": "How do you feel after exploring your nostalgic?",
+            "feedback_positive": "That's great! Embracing your nostalgic is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this nostalgic together."
+        },
+        {
+            "name": "disappointed",
+            "follow_up_question": "What made you feel disappointed?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort":"Disappointment is tough. These videos can help you bounce back:",
+                    "videos": [
+                        {
+                            "title": "How to Deal with Disappointment",
+                            "link": "https://www.youtube.com/watch?v=EmFRQ8DuCPI"
+                        },
+                        {
+                            "title": "Turning Disappointment Into Growth",
+                            "link": "https://www.youtube.com/watch?v=fNLUlCgrVX8"
+                        }
+                    ],
+            "feedback_question": "How do you feel after exploring your disappointed?",
+            "feedback_positive": "That's great! Embracing your disappointed is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this disappointed together."
+        },
+        {
+            "name": "regretful",
+            "follow_up_question": "What made you feel regretful?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort": "Regret can be heavy. Here’s how to process it healthily:",
+                    "videos": [
+                        {
+                            "title": "Letting Go of Regret",
+                            "link": "https://www.youtube.com/watch?v=1NtEAZ7H27M"
+                        },
+                        {
+                            "title": "Healing from Past Mistakes",
+                            "link": "https://www.youtube.com/watch?v=2Lq1Su3mEHw"
+                        }
+                    ],
+            "feedback_question": "How do you feel after exploring your regretful?",
+            "feedback_positive": "That's great! Embracing your regretful is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this regretful together."
+        },
+        {
+            "name": "rejected",
+            "follow_up_question": "What made you feel rejected?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort": "Rejection hurts, but you’ll grow stronger. Watch these for inspiration:",
+                    "videos": [
+                        {
+                            "title": "Dealing with Rejection",
+                            "link": "https://www.youtube.com/watch?v=KO6bbZOc2B4"
+                        },
+                        {
+                            "title": "Rejection is Redirection",
+                            "link": "https://www.youtube.com/watch?v=6Q4poEULvdQ"
+                        }
+                    ],
+            "feedback_question": "How do you feel after exploring your rejected?",
+            "feedback_positive": "That's great! Embracing your rejected is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this rejected together."
+        },
+        {
+            "name": "angry",
+            "follow_up_question": "What made you feel angry?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort": "Anger is natural. These videos can help you cool down and reflect:",
+            "videos": [
+                {
+                    "title": "How to Manage Anger",
+                    "link": "https://www.youtube.com/watch?v=kmTEyxWg7Hs"
+                },
+                {
+                    "title": "Meditation for Anger Release",
+                    "link": "https://www.youtube.com/watch?v=JwsPProhb5E"
+                }
+            ],
+            "feedback_question": "How do you feel after exploring your angry?",
+            "feedback_positive": "That's great! Embracing your angry is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this angry together."
+        },
+        {
+            "name": "frustrated",
+            "follow_up_question": "What made you feel frustrated?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort":"Frustration can be overwhelming. These videos might help:",
+                    "videos": [
+                        {
+                            "title": "How to Handle Frustration",
+                            "link": "https://www.youtube.com/watch?v=C0UJRsmVr6g"
+                        },
+                        {
+                            "title": "Relaxation Techniques for Frustration",
+                            "link": "https://www.youtube.com/watch?v=03tsTH9dzns"
+                        }
+                    ],
+            "feedback_question": "How do you feel after exploring your frustrated?",
+            "feedback_positive": "That's great! Embracing your frustrated is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this frustrated together."
+        },
+        {
+            "name": "annoyed",
+            "follow_up_question": "What made you feel annoyed?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort":  "Feeling annoyed? Take a deep breath and watch these calming videos:",
+            "videos": [
+                {
+                    "title": "How to Stay Calm in Annoying Situations",
+                    "link": "https://www.youtube.com/watch?v=YF5JSh1dDVg"
+                },
+                {
+                    "title": "5-Minute Calming Exercises",
+                    "link": "https://www.youtube.com/watch?v=TXNECaIJPDI"
+                }
+            ],
+            "feedback_question": "How do you feel after exploring your annoyed?",
+            "feedback_positive": "That's great! Embracing your annoyed is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this annoyed together."
+        },
+        {
+            "name": "resentful",
+            "follow_up_question": "What made you feel resentful?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort":"Resentment can be heavy. These videos might help release it:",
+                    "videos": [
+                        {
+                            "title": "Letting Go of Resentment",
+                            "link": "https://www.youtube.com/watch?v=BwkcjeSaFEc"
+                        },
+                        {
+                            "title": "Forgiveness Meditation",
+                            "link": "https://www.youtube.com/watch?v=4IWpeh-zkts"
+                        }
+                    ],
+            "feedback_question": "How do you feel after exploring your resentful?",
+            "feedback_positive": "That's great! Embracing your resentful is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this resentful together."
+        },
+        {
+            "name": "bitter",
+            "follow_up_question": "What made you feel bitter?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort": "It's okay to feel bitter. Every emotion has a reason. Let\u2019s explore it together!",
+            "videos": [
+                {
+                    "title": "Understanding Bitter",
+                    "link": "https://www.youtube.com/watch?v=EMOHb7D_aSc"
+                },
+                {
+                    "title": "Coping with Bitter",
+                    "link": "https://www.youtube.com/watch?v=8O3WERjjuRQ"
+                }
+            ],
+            "feedback_question": "How do you feel after exploring your bitter?",
+            "feedback_positive": "That's great! Embracing your bitter is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this bitter together."
+        },
+        {
+            "name": "jealous",
+            "follow_up_question": "What made you feel jealous?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort": "Jealousy can be challenging. Here’s how to deal with it healthily:",
+                    "videos": [
+                        {
+                            "title": "Understanding and Managing Jealousy",
+                            "link": "https://www.youtube.com/watch?v=2gFLwkeJYB4"
+                        },
+                        {
+                            "title": "Overcoming Jealous Thoughts",
+                            "link": "https://www.youtube.com/watch?v=_5x20hH6c_k"
+                        }
+                    ],
+            "feedback_question": "How do you feel after exploring your jealous?",
+            "feedback_positive": "That's great! Embracing your jealous is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this jealous together."
+        },
+        {
+            "name": "impatient",
+            "follow_up_question": "What made you feel impatient?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort": "Feeling impatient? These videos might help you slow down:",
+            "videos": [
+                {
+                    "title": "How to Cultivate Patience",
+                    "link": "https://www.youtube.com/watch?v=u0gXCZEj8ao"
+                },
+                {
+                    "title": "Slowing Down in a Fast-Paced World",
+                    "link": "https://www.youtube.com/watch?v=GiS5LIcpP2Y"
+                }
+            ],
+            "feedback_question": "How do you feel after exploring your impatient?",
+            "feedback_positive": "That's great! Embracing your impatient is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this impatient together."
+        },
+        {
+            "name": "anxious",
+            "follow_up_question": "What made you feel anxious?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort": "Anxiety is hard. These videos can help you feel calmer:",
+                    "videos": [
+                        {
+                            "title": "Dealing with Anxiety",
+                            "link": "https://www.youtube.com/watch?v=WWloIAQpMcQ"
+                        },
+                        {
+                            "title": "Breathing Exercises for Anxiety",
+                            "link": "https://www.youtube.com/watch?v=xGb4fvfZpWM"
+                        }
+                    ],
+            "feedback_question": "How do you feel after exploring your anxious?",
+            "feedback_positive": "That's great! Embracing your anxious is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this anxious together."
+        },
+        {
+            "name": "nervous",
+            "follow_up_question": "What made you feel nervous?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort":"Feeling nervous? Relax with these helpful videos:",
+                    "videos": [
+                        {
+                            "title": "How to Calm Your Nerves",
+                            "link": "https://www.youtube.com/watch?v=Ba0fweKUwIc"
+                        },
+                        {
+                            "title": "Meditation for Nerves",
+                            "link": "https://www.youtube.com/watch?v=0wxnCmPuQgQ"
+                        }
+                    ],
+            "feedback_question": "How do you feel after exploring your nervous?",
+            "feedback_positive": "That's great! Embracing your nervous is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this nervous together."
+        },
+        {
+            "name": "overwhelmed",
+            "follow_up_question": "What made you feel overwhelmed?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort": "Feeling overwhelmed? Take a break with these videos:",
+                    "videos": [
+                        {
+                            "title": "How to Cope When Overwhelmed",
+                            "link": "https://www.youtube.com/watch?v=OoOuHRXlvb4"
+                        },
+                        {
+                            "title": "10-Minute Reset for Overwhelm",
+                            "link": "https://www.youtube.com/watch?v=1ReSyzH0AFw"
+                        }
+            ],
+            "feedback_question": "How do you feel after exploring your overwhelmed?",
+            "feedback_positive": "That's great! Embracing your overwhelmed is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this overwhelmed together."
+        },
+        {
+            "name": "fearful",
+            "follow_up_question": "What made you feel fearful?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort": "Fear is a strong emotion. These videos can help you find courage:",
+                    "videos": [
+                        {
+                            "title": "Overcoming Fear",
+                            "link": "https://www.youtube.com/watch?v=xNtt5Zqja-c"
+                        },
+                        {
+                            "title": "Guided Meditation for Fear",
+                            "link": "https://www.youtube.com/watch?v=ukNC17sA3ME"
+                        }
+                    ],
+            "feedback_question": "How do you feel after exploring your fearful?",
+            "feedback_positive": "That's great! Embracing your fearful is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this fearful together."
+        },
+        {
+            "name": "worried",
+            "follow_up_question": "What made you feel worried?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort": "Worrying takes a toll. Here are some calming videos for you:",
+            "videos": [
+                {
+                    "title": "How to Stop Worrying",
+                    "link": "https://www.youtube.com/watch?v=yqR77sa4EVE"
+                },
+                {
+                    "title": "Positive Affirmations for Worry",
+                    "link": "https://www.youtube.com/watch?v=mQE0sfnNFEw"
+                }
+            ],
+            "feedback_question": "How do you feel after exploring your worried?",
+            "feedback_positive": "That's great! Embracing your worried is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this worried together."
+        },
+        {
+            "name": "panicked",
+            "follow_up_question": "What made you feel panicked?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort": "Listen to a calming meditation for panic relief.",
+            "videos": [
+                {
+                    "title": "Understanding Panicked",
+                    "link": "https://www.youtube.com/watch?v=16XD6zP_d8M&t=110s"
+                },
+                {
+                    "title": "Coping with Panicked",
+                    "link":  "https://www.youtube.com/watch?v=pJCpZBIedrw"
+                }
+            ],
+            "feedback_question": "How do you feel after exploring your panicked?",
+            "feedback_positive": "That's great! Embracing your panicked is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this panicked together."
+        },
+        {
+            "name": "insecure",
+            "follow_up_question": "What made you feel insecure?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort": "Watch a motivational video to boost your confidence.",
+            "videos": [
+                {
+                    "title": "Understanding Insecure",
+                    "link": "https://www.youtube.com/watch?v=il24jDGaFjQ"
+                },
+                {
+                    "title": "Coping with Insecure",
+                    "link": "https://www.youtube.com/watch?v=l_NYrWqUR40"
+                }
+            ],
+            "feedback_question": "How do you feel after exploring your insecure?",
+            "feedback_positive": "That's great! Embracing your insecure is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this insecure together."
+        },
+        {
+            "name": "embarrassed",
+            "follow_up_question": "What made you feel embarrassed?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort": "Laugh away your embarrassment with a funny clip.",
+            "videos": [
+                {
+                    "title": "Understanding Embarrassed",
+                    "link": "https://www.youtube.com/watch?v=iCucC_r5fXc"
+                },
+                {
+                    "title": "Coping with Embarrassed",
+                    "link": "https://www.youtube.com/watch?v=wFa3_lU5KOE"
+                }
+            ],
+            "feedback_question": "How do you feel after exploring your embarrassed?",
+            "feedback_positive": "That's great! Embracing your embarrassed is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this embarrassed together."
+        },
+        {
+            "name": "ashamed",
+            "follow_up_question": "What made you feel ashamed?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort": "Reflect and grow with a guided meditation for self-forgiveness.",
+            "videos": [
+                {
+                    "title": "Understanding Ashamed",
+                    "link":  "https://www.youtube.com/watch?v=n_vNmQ_pkKU"
+                },
+                {
+                    "title": "Coping with Ashamed",
+                    "link":  "https://www.youtube.com/watch?v=_wdhT1aORWc"
+                }
+            ],
+            "feedback_question": "How do you feel after exploring your ashamed?",
+            "feedback_positive": "That's great! Embracing your ashamed is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this ashamed together."
+        },
+        {
+            "name": "guilty",
+            "follow_up_question": "What made you feel guilty?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort": "Practice gratitude and let go of guilt.",
+            "videos": [
+                {
+                    "title": "Understanding Guilty",
+                    "link":"https://www.youtube.com/watch?v=gmOijbDiY6I"
+                },
+                {
+                    "title": "Coping with Guilty",
+                    "link": "https://www.youtube.com/watch?v=drgMS6DSQ_M"
+                }
+            ],
+            "feedback_question": "How do you feel after exploring your guilty?",
+            "feedback_positive": "That's great! Embracing your guilty is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this guilty together."
+        },
+        {
+            "name": "surprised",
+            "follow_up_question": "What made you feel surprised?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort":  "Celebrate the surprise with uplifting music.",
+            "videos": [
+                {
+                    "title": "Understanding Surprised",
+                    "link": "https://www.youtube.com/watch?v=6OkG0PK7S08"
+                },
+                {
+                    "title": "Coping with Surprised",
+                    "link": "https://www.youtube.com/watch?v=AnlNzzAghrY"
+                }
+            ],
+            "feedback_question": "How do you feel after exploring your surprised?",
+            "feedback_positive": "That's great! Embracing your surprised is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this surprised together."
+        },
+        {
+            "name": "amazed",
+            "follow_up_question": "What made you feel amazed?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort": "Explore more inspiring and awe-inducing content.",
+            "videos": [
+                {
+                    "title": "Understanding Amazed",
+                    "link": "https://www.youtube.com/watch?v=_aLlPaB4oZ0Y"
+                },
+                {
+                    "title": "Coping with Amazed",
+                    "link": "https://www.youtube.com/watch?v=UBWJtAzQCR8"
+                }
+            ],
+            "feedback_question": "How do you feel after exploring your amazed?",
+            "feedback_positive": "That's great! Embracing your amazed is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this amazed together."
+        },
+        {
+            "name": "confused",
+            "follow_up_question": "What made you feel confused?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort": "Take a moment to clear your mind with relaxing sounds.",
+            "videos": [
+                {
+                    "title": "Understanding Confused",
+                    "link": "https://www.youtube.com/watch?v=YFRZI3xMovM"
+                },
+                {
+                    "title": "Coping with Confused",
+                    "link": "https://www.youtube.com/watch?v=ztTexqGQ0VI"
+                }
+            ],
+            "feedback_question": "How do you feel after exploring your confused?",
+            "feedback_positive": "That's great! Embracing your confused is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this confused together."
+        },
+        {
+            "name": "shocked",
+            "follow_up_question": "What made you feel shocked?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort": "Relax your thoughts with soothing guided imagery.",
+            "videos": [
+                {
+                    "title": "Understanding Shocked",
+                    "link": "https://www.youtube.com/watch?v=oBUYdYf6CCE"
+                },
+                {
+                    "title": "Coping with Shocked",
+                    "link": "https://www.youtube.com/watch?v=AbckuluEdM0"
+                }
+            ],
+            "feedback_question": "How do you feel after exploring your shocked?",
+            "feedback_positive": "That's great! Embracing your shocked is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this shocked together."
+        },
+        {
+            "name": "curious",
+            "follow_up_question": "What made you feel curious?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort": "Feed your curiosity with educational videos.",
+            "videos": [
+                {
+                    "title": "Understanding Curious",
+                    "link": "https://www.youtube.com/watch?v=UWZt06wiM3M"
+                },
+                {
+                    "title": "Coping with Curious",
+                    "link": "https://www.youtube.com/watch?v=4-5wdYMIsZw"
+                }
+            ],
+            "feedback_question": "How do you feel after exploring your curious?",
+            "feedback_positive": "That's great! Embracing your curious is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this curious together."
+        },
+        {
+            "name": "disgusted",
+            "follow_up_question": "What made you feel disgusted?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort": "Find calming affirmations to shift your focus.",
+            "videos": [
+                {
+                    "title": "Understanding Disgusted",
+                    "link": "https://www.youtube.com/watch?v=nEUzQ7yL9A0"
+                },
+                {
+                    "title": "Coping with Disgusted",
+                    "link": "https://www.youtube.com/watch?v=jetoWelJJJk"
+                }
+            ],
+            "feedback_question": "How do you feel after exploring your disgusted?",
+            "feedback_positive": "That's great! Embracing your disgusted is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this disgusted together."
+        },
+        {
+            "name": "horrified",
+            "follow_up_question": "What made you feel horrified?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort": "Ease your mind with relaxing visuals and soft music.",
+            "videos": [
+                {
+                    "title": "Understanding Horrified",
+                    "link": "https://www.youtube.com/watch?v=elB1D4EiE3A"
+                },
+                {
+                    "title": "Coping with Horrified",
+                    "link": "https://www.youtube.com/watch?v=elB1D4EiE3A"
+                }
+            ],
+            "feedback_question": "How do you feel after exploring your horrified?",
+            "feedback_positive": "That's great! Embracing your horrified is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this horrified together."
+        },
+        {
+            "name": "uncomfortable",
+            "follow_up_question": "What made you feel uncomfortable?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort": "Find comfort with calming nature sounds.",
+            "videos": [
+                {
+                    "title": "Understanding Uncomfortable",
+                    "link": "https://www.youtube.com/playlist?list=PLGyeMNN3fdYoyZ4QAnbSL2A4njOW6jrc0"
+                },
+                {
+                    "title": "Coping with Uncomfortable",
+                    "link":  "https://www.youtube.com/watch?v=LtidIrjptR0"
+                }
+            ],
+            "feedback_question": "How do you feel after exploring your uncomfortable?",
+            "feedback_positive": "That's great! Embracing your uncomfortable is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this uncomfortable together."
+        },
+        {
+            "name": "repulsed",
+            "follow_up_question": "What made you feel repulsed?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort": "Balance your emotions with uplifting guided affirmations.",
+            "videos": [
+                {
+                    "title": "Understanding Repulsed",
+                    "link": "https://www.youtube.com/watch?v=CDVKPt2ui8U"
+                },
+                {
+                    "title": "Coping with Repulsed",
+                    "link": "https://www.youtube.com/watch?v=elB1D4EiE3A"
+                }
+            ],
+            "feedback_question": "How do you feel after exploring your repulsed?",
+            "feedback_positive": "That's great! Embracing your repulsed is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this repulsed together."
+        },
+        {
+            "name": "bored",
+            "follow_up_question": "What made you feel bored?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort": "Discover new and interesting hobbies to explore.",
+            "videos": [
+                {
+                    "title": "Understanding Bored",
+                    "link": "https://www.youtube.com/watch?v=c73Q8oQmwzo"
+                },
+                {
+                    "title": "Coping with Bored",
+                    "link": "https://www.youtube.com/watch?v=c73Q8oQmwzo"
+                }
+            ],
+            "feedback_question": "How do you feel after exploring your bored?",
+            "feedback_positive": "That's great! Embracing your bored is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this bored together."
+        },
+        {
+            "name": "tired",
+            "follow_up_question": "What made you feel tired?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort": "Relax your body and mind with sleep meditations.",
+            "videos": [
+                {
+                    "title": "Understanding Tired",
+                    "link": "https://www.youtube.com/shorts/sfUhaCicPaA"
+                },
+                {
+                    "title": "Coping with Tired",
+                    "link": "https://www.youtube.com/watch?v=c73Q8oQmwzo"
+                }
+            ],
+            "feedback_question": "How do you feel after exploring your tired?",
+            "feedback_positive": "That's great! Embracing your tired is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this tired together."
+        },
+        {
+            "name": "lazy",
+            "follow_up_question": "What made you feel lazy?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort": "Boost your energy with an easy-to-follow workout.",
+            "videos": [
+                {
+                    "title": "Understanding Lazy",
+                    "link":  "https://www.youtube.com/watch?v=OjcAzxtyRbw"
+                },
+                {
+                    "title": "Coping with Lazy",
+                    "link": "https://www.youtube.com/shorts/sfUhaCicPaA"
+                }
+            ],
+            "feedback_question": "How do you feel after exploring your lazy?",
+            "feedback_positive": "That's great! Embracing your lazy is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this lazy together."
+        },
+        {
+            "name": "drained",
+            "follow_up_question": "What made you feel drained?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort": "Recharge yourself with a 10-minute guided meditation.",
+            "videos": [
+                {
+                    "title": "Understanding Drained",
+                    "link": "https://www.youtube.com/watch?v=aZObOT7-6ek"
+                },
+                {
+                    "title": "Coping with Drained",
+                    "link": "https://www.youtube.com/watch?v=VMKRsWiTU_c"
+                }
+            ],
+            "feedback_question": "How do you feel after exploring your drained?",
+            "feedback_positive": "That's great! Embracing your drained is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this drained together."
+        },
+        {
+            "name": "motivated",
+            "follow_up_question": "What made you feel motivated?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort": "Stay motivated with inspiring speeches.",
+            "videos": [
+                {
+                    "title": "Understanding Motivated",
+                    "link": "https://www.youtube.com/watch?v=1gzVhnT3pB4"
+                },
+                {
+                    "title": "Coping with Motivated",
+                    "link": "https://www.youtube.com/watch?v=BvMJU7SSXDQ"
+                }
+            ],
+            "feedback_question": "How do you feel after exploring your motivated?",
+            "feedback_positive": "That's great! Embracing your motivated is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this motivated together."
+        },
+        {
+            "name": "determined",
+            "follow_up_question": "What made you feel determined?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort": "Channel your determination with goal-setting videos.",
+            "videos": [
+                {
+                    "title": "Understanding Determined",
+                    "link": "https://www.youtube.com/watch?v=6YOQkfhr2SU"
+                },
+                {
+                    "title": "Coping with Determined",
+                    "link": "https://www.youtube.com/watch?v=elB1D4EiE3A"
+                }
+            ],
+            "feedback_question": "How do you feel after exploring your determined?",
+            "feedback_positive": "That's great! Embracing your determined is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this determined together."
+        },
+        {
+            "name": "energetic",
+            "follow_up_question": "What made you feel energetic?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort": "Channel your energy into a fun workout or dance session.",
+            "videos": [
+                {
+                    "title": "Understanding Energetic",
+                    "link": "https://www.youtube.com/watch?v=bDz0slYG7gs"
+                },
+                {
+                    "title": "Coping with Energetic",
+                    "link": "https://www.youtube.com/watch?v=bDz0slYG7gs"
+                }
+            ],
+            "feedback_question": "How do you feel after exploring your energetic?",
+            "feedback_positive": "That's great! Embracing your energetic is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this energetic together."
+        },
+        {
+            "name": "passionate",
+            "follow_up_question": "What made you feel passionate?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort": "Fuel your passion with inspiring stories and ideas.",
+            "videos": [
+                {
+                    "title": "Understanding Passionate",
+                    "link": "https://www.youtube.com/watch?v=5ifMRNag2XU"
+                },
+                {
+                    "title": "Coping with Passionate",
+                    "link": "https://www.youtube.com/watch?v=H14bBuluwB8"
+                }
+            ],
+            "feedback_question": "How do you feel after exploring your passionate?",
+            "feedback_positive": "That's great! Embracing your passionate is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this passionate together."
+        },
+        {
+            "name": "inspired",
+            "follow_up_question": "What made you feel inspired?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort": "Explore inspirational content to keep your creativity flowing.",
+            "videos": [
+                {
+                    "title": "Understanding Inspired",
+                    "link": "https://www.youtube.com/watch?v=Tuw8hxrFBH8&t=91s"
+                },
+                {
+                    "title": "Coping with Inspired",
+                    "link": "https://www.youtube.com/shorts/H6dImOh3yBM"
+                }
+            ],
+            "feedback_question": "How do you feel after exploring your inspired?",
+            "feedback_positive": "That's great! Embracing your inspired is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this inspired together."
+        },
+        {
+            "name": "optimistic",
+            "follow_up_question": "What made you feel optimistic?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort": "Embrace your optimism with uplifting and feel-good videos.",
+            "videos": [
+                {
+                    "title": "Understanding Optimistic",
+                    "link": "https://www.youtube.com/watch?v=g1hYYIMVl_I"
+                },
+                {
+                    "title": "Coping with Optimistic",
+                    "link": "https://www.youtube.com/watch?v=vQ6JJjyYHbk"
+                }
+            ],
+            "feedback_question": "How do you feel after exploring your optimistic?",
+            "feedback_positive": "That's great! Embracing your optimistic is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this optimistic together."
+        },
+        {
+            "name": "empowered",
+            "follow_up_question": "What made you feel empowered?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort": "Celebrate your strength with motivational content.",
+            "videos": [
+                {
+                    "title": "Understanding Empowered",
+                    "link": "https://www.youtube.com/shorts/dqVR1hhQWZc"
+                },
+                {
+                    "title": "Coping with Empowered",
+                    "link": "https://www.youtube.com/shorts/NSQ4SkKV5wc"
+                }
+            ],
+            "feedback_question": "How do you feel after exploring your empowered?",
+            "feedback_positive": "That's great! Embracing your empowered is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this empowered together."
+        },
+        {
+            "name": "calm",
+            "follow_up_question": "What made you feel calm?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort": "Maintain your calm with peaceful nature sounds or meditation.",
+            "videos": [
+                {
+                    "title": "Understanding Calm",
+                    "link": "https://www.youtube.com/watch?v=WZKW2Hq2fks"
+                },
+                {
+                    "title": "Coping with Calm",
+                    "link": "https://www.youtube.com/watch?v=gmTxEvIXh6U"
+                }
+            ],
+            "feedback_question": "How do you feel after exploring your calm?",
+            "feedback_positive": "That's great! Embracing your calm is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this calm together."
+        },
+        {
+            "name": "relaxed",
+            "follow_up_question": "What made you feel relaxed?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort": "Deepen your relaxation with guided mindfulness practices.",
+            "videos": [
+                {
+                    "title": "Understanding Relaxed",
+                    "link":"https://www.youtube.com/watch?v=caq8XpjAswo"
+                },
+                {
+                    "title": "Coping with Relaxed",
+                    "link": "https://www.youtube.com/watch?v=Xl_B45DpMLU"
+                }
+            ],
+            "feedback_question": "How do you feel after exploring your relaxed?",
+            "feedback_positive": "That's great! Embracing your relaxed is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this relaxed together."
+        },
+        {
+            "name": "peaceful",
+            "follow_up_question": "What made you feel peaceful?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort": "Sustain your peaceful state with calming instrumental music.",
+            "videos": [
+                {
+                    "title": "Understanding Peaceful",
+                    "link": "https://www.youtube.com/watch?v=CcsUYu0PVxY"
+                },
+                {
+                    "title": "Coping with Peaceful",
+                    "link": "https://www.youtube.com/watch?v=EhO_MrRfftU"
+                }
+            ],
+            "feedback_question": "How do you feel after exploring your peaceful?",
+            "feedback_positive": "That's great! Embracing your peaceful is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this peaceful together."
+        },
+        {
+            "name": "focused",
+            "follow_up_question": "What made you feel focused?",
+            "reasons": [
+                "Health",
+                "Work",
+                "Relationships",
+                "Other"
+            ],
+            "comfort": "Enhance your focus with study music or productivity techniques.",
+            "videos": [
+                {
+                    "title": "Understanding Focused",
+                    "link": "https://www.youtube.com/watch?v=O19k_-Py5Wc"
+                },
+                {
+                    "title": "Coping with Focused",
+                    "link": "https://www.youtube.com/watch?v=CB_PZSnen5A"
+                }
+            ],
+            "feedback_question": "How do you feel after exploring your focused?",
+            "feedback_positive": "That's great! Embracing your focused is a step forward. \ud83c\udf1f",
+            "feedback_negative": "I'm here for you. Let\u2019s find a way to navigate through this focused together."
+        }
+    ]
+};
+
+// Chatbot State Variables
+let currentStep = 0; // Tracks the current step in the conversation
+let selectedEmotion = null; // Stores the selected emotion object
+let userName = ""; // Stores the user's name
+
+// Initialize Chatbot on DOM Load
+document.addEventListener("DOMContentLoaded", () => {
+    const sendButton = document.getElementById("send-button");
+    const userInput = document.getElementById("user-input");
+
+    sendButton.addEventListener("click", handleUserInput);
+    userInput.addEventListener("keypress", function(e) {
+        if (e.key === 'Enter') {
+            handleUserInput();
+        }
+    });
+
+    startChat();
+});
+
+// Start the Chatbot Conversation
+function startChat() {
+    sendBotMessage("Welcome to the Emotion Chatbot! Please type anything to begin.");
+    enableUserInput();
+}
+
+// Enable the input field and send button
+function enableUserInput() {
+    document.getElementById("user-input").disabled = false;
+    document.getElementById("send-button").disabled = false;
+    document.getElementById("user-input").focus();
+}
+
+// Disable the input field and send button
+function disableUserInput() {
+    document.getElementById("user-input").disabled = true;
+    document.getElementById("send-button").disabled = true;
+}
+
+// Handle User Input (Button Clicks or Text Input)
+function handleUserInput() {
+    const userInput = document.getElementById("user-input");
+    const input = userInput.value.trim();
+    if (input === "") return;
+
+    sendUserMessage(input);
+    userInput.value = "";
+
+    processInput(input);
+}
+
+// Process User Input Based on Current Step
+function processInput(input) {
+    if (currentStep === 0) {
+        // Step 0: User typed anything to start
+        currentStep++;
+        sendBotMessage("Hi! What is your name?");
+    } else if (currentStep === 1) {
+        // Step 1: Receive user's name
+        userName = input;
+        currentStep++;
+        sendBotMessage(`Hi! ${userName}! How are you feeling today?`);
+        displayEmotionOptions();
+    } else if (currentStep === 2) {
+        // Step 2: Emotion Selection
+        const emotion = emotionsData.emotions.find(em => em.name.toLowerCase() === input.toLowerCase());
+        if (emotion) {
+            selectedEmotion = emotion;
+            currentStep++;
+            sendBotMessage(selectedEmotion.follow_up_question, generateButtons(selectedEmotion.reasons, "reason"));
+        } else {
+            sendBotMessage("I'm sorry, I didn't recognize that emotion. Please select from the options below.", generateButtons(emotionsData.emotions.map(e => e.name), "emotion"));
+        }
+    } else if (currentStep === 3) {
+        // Step 3: Reason Selection
+        if (selectedEmotion.reasons.map(r => r.toLowerCase()).includes(input.toLowerCase())) {
+            currentStep++;
+            sendBotMessage(selectedEmotion.comfort);
+            displayVideos(selectedEmotion.videos);
+            sendBotMessage(selectedEmotion.feedback_question, generateButtons(["Positive", "Negative"], "feedback"));
+        } else {
+            sendBotMessage("Please select a valid reason from the options below.", generateButtons(selectedEmotion.reasons, "reason"));
+        }
+    } else if (currentStep === 4) {
+        // Step 4: Feedback Given
+        if (input.toLowerCase() === "positive") {
+            sendBotMessage(selectedEmotion.feedback_positive);
+            currentStep++;
+            askToDiscussAnotherEmotion();
+        } else if (input.toLowerCase() === "negative") {
+            sendBotMessage(selectedEmotion.feedback_negative);
+            currentStep++;
+            askToDiscussAnotherEmotion();
+        } else {
+            sendBotMessage("Please select 'Positive' or 'Negative' from the options below.", generateButtons(["Positive", "Negative"], "feedback"));
+        }
+    } else if (currentStep === 5) {
+        // Step 5: Decide to continue or end
+        if (input.toLowerCase() === "yes") {
+            sendBotMessage("Great! Let's discuss another emotion.");
+            currentStep = 2; // Reset to emotion selection step
+            sendBotMessage("How are you feeling today?");
+            displayEmotionOptions();
+        } else if (input.toLowerCase() === "no") {
+            sendBotMessage("Thank you! Bye!! 👋");
+            resetChat();
+        } else {
+            sendBotMessage("Please select 'Yes' or 'No' from the options below.", generateButtons(["Yes", "No"], "continue"));
+        }
+    }
+}
+
+// Ask the user if they want to discuss another emotion
+function askToDiscussAnotherEmotion() {
+    sendBotMessage("Would you like to discuss another emotion?", generateButtons(["Yes", "No"], "continue"));
+}
+
+// Send Bot Message to Chat Window
+function sendBotMessage(message, options = null) {
+    const messagesDiv = document.getElementById("messages");
+    const messageElem = document.createElement("div");
+    messageElem.classList.add("message", "bot-message");
+    messageElem.innerHTML = message;
+    if (options) {
+        messageElem.innerHTML += `<div class="options">${options}</div>`;
+    }
+    messagesDiv.appendChild(messageElem);
+    scrollToBottom();
+}
+
+// Send User Message to Chat Window
+function sendUserMessage(message) {
+    const messagesDiv = document.getElementById("messages");
+    const messageElem = document.createElement("div");
+    messageElem.classList.add("message", "user-message");
+    messageElem.textContent = message;
+    messagesDiv.appendChild(messageElem);
+    scrollToBottom();
+}
+
+// Generate Buttons for Options
+function generateButtons(options, type) {
+    return options.map(option => `<button class="option-button" data-type="${type}" data-value="${option}">${option}</button>`).join(" ");
+}
+
+// Display Related Videos
+function displayVideos(videos) {
+    const messagesDiv = document.getElementById("messages");
+    videos.forEach(video => {
+        const videoElem = document.createElement("div");
+        videoElem.classList.add("video");
+        videoElem.innerHTML = `<a href="${video.link}" target="_blank">${video.title}</a>`;
+        messagesDiv.appendChild(videoElem);
+    });
+}
+
+// Reset Chat for New Interaction
+function resetChat() {
+    currentStep = 0;
+    selectedEmotion = null;
+    userName = "";
+    sendBotMessage("If you want to start over, please refresh the page.");
+    disableUserInput();
+}
+
+// Scroll Chat to Bottom
+function scrollToBottom() {
+    const chatWindow = document.getElementById("chat-window");
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+}
+
+// Event Delegation for Option Buttons
+document.addEventListener("click", function(event) {
+    if (event.target.classList.contains("option-button")) {
+        const type = event.target.getAttribute("data-type");
+        const value = event.target.getAttribute("data-value");
+        sendUserMessage(value);
+        processInput(value);
+    }
+});
+
+</script>
+
+{% endblock %}
